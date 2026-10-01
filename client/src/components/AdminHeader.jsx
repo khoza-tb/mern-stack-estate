@@ -1,21 +1,33 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Bell,
   RefreshCw,
   X,
   AlertCircle,
   MessageSquare,
+  LogOut,
 } from "lucide-react";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
+
+import {
+  signOutUserStart,
+  signOutUserSuccess,
+  signOutUserFailure,
+} from "../redux/user/userSlice";
 
 export default function AdminHeader() {
-  const { currentUser } = useSelector((state) => state.user);
+  const { currentUser, loading: userLoading } = useSelector(
+    (state) => state.user
+  );
 
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
   const [error, setError] = useState("");
+
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
 
   // =========================================================
   // SAFE RESPONSE PARSER
@@ -104,6 +116,54 @@ export default function AdminHeader() {
 
   const handleRefresh = async () => {
     await fetchStats();
+  };
+
+  // =========================================================
+  // ADMIN SIGN OUT
+  // =========================================================
+
+  const handleSignOut = async () => {
+    try {
+      dispatch(signOutUserStart());
+
+      const response = await fetch("/api/auth/signout", {
+        method: "GET",
+        credentials: "include",
+      });
+
+      const data = await parseResponse(response);
+
+      if (!response.ok) {
+        throw new Error(
+          data.message || "Failed to sign out."
+        );
+      }
+
+      dispatch(signOutUserSuccess());
+
+      setNotificationOpen(false);
+
+      navigate("/admin/signin", {
+        replace: true,
+      });
+    } catch (error) {
+      console.error("ADMIN SIGN OUT ERROR:", error);
+
+      dispatch(
+        signOutUserFailure(
+          error.message || "Failed to sign out."
+        )
+      );
+
+      // Even if the server-side cookie request fails,
+      // remove the local Redux session so the admin
+      // is not left inside the dashboard.
+      dispatch(signOutUserSuccess());
+
+      navigate("/admin/signin", {
+        replace: true,
+      });
+    }
   };
 
   return (
@@ -295,6 +355,21 @@ export default function AdminHeader() {
               </p>
             </div>
           </div>
+
+          {/* SIGN OUT */}
+          <button
+            type="button"
+            onClick={handleSignOut}
+            disabled={userLoading}
+            title="Sign Out"
+            className="flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:text-gray-300 dark:hover:border-red-900 dark:hover:bg-red-950/30 dark:hover:text-red-400"
+          >
+            <LogOut size={17} />
+
+            <span className="hidden sm:inline">
+              {userLoading ? "Signing Out..." : "Sign Out"}
+            </span>
+          </button>
         </div>
       </div>
     </header>
