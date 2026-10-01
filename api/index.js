@@ -99,16 +99,17 @@ app.use(cookieParser());
 // CORS
 // =====================================================
 
+// CORS
 const allowedOrigins = [
   "http://localhost:5173",
+  "https://mern-stack-estate-1-u4na.onrender.com",
   process.env.CLIENT_URL,
 ].filter(Boolean);
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests without an origin,
-      // such as Postman or server-to-server requests.
+      // Allow requests with no origin
       if (!origin) {
         return callback(null, true);
       }
@@ -118,10 +119,7 @@ app.use(
       }
 
       console.log("Blocked CORS origin:", origin);
-
-      return callback(
-        new Error("Not allowed by CORS")
-      );
+      return callback(new Error("Not allowed by CORS"));
     },
     credentials: true,
   })
