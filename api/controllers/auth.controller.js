@@ -12,8 +12,8 @@ import { errorHandler } from "../utils/error.js";
 const COOKIE_OPTIONS = {
   httpOnly: true,
   sameSite: "lax",
-  secure: false, // localhost development
-  maxAge: 24 * 60 * 60 * 1000, // 1 day
+  secure: process.env.NODE_ENV === "production",
+  maxAge: 24 * 60 * 60 * 1000,
 };
 
 // =====================================================
@@ -87,7 +87,7 @@ export const test = (req, res) => {
 };
 
 // =====================================================
-// SIGN UP
+// SIGN UP - NORMAL USER
 // =====================================================
 
 export const signup = async (
@@ -102,24 +102,16 @@ export const signup = async (
       password,
     } = req.body;
 
-    console.log(
-      "================================="
-    );
-
-    console.log(
-      "USER SIGNUP REQUEST:"
-    );
+    console.log("=================================");
+    console.log("USER SIGNUP REQUEST:");
 
     console.log({
       username,
       email,
-      passwordProvided:
-        Boolean(password),
+      passwordProvided: Boolean(password),
     });
 
-    console.log(
-      "================================="
-    );
+    console.log("=================================");
 
     // =================================================
     // VALIDATE INPUT
@@ -218,11 +210,6 @@ export const signup = async (
         10
       );
 
-    console.log(
-      "PASSWORD HASH CREATED:",
-      hashedPassword.substring(0, 10) + "..."
-    );
-
     // =================================================
     // CREATE NORMAL USER
     // =================================================
@@ -243,7 +230,7 @@ export const signup = async (
     await newUser.save();
 
     console.log(
-      "USER CREATED SUCCESSFULLY:",
+      "✅ USER CREATED SUCCESSFULLY:",
       {
         id: newUser._id.toString(),
         username: newUser.username,
@@ -252,9 +239,7 @@ export const signup = async (
       }
     );
 
-    console.log(
-      "================================="
-    );
+    console.log("=================================");
 
     return res.status(201).json({
       success: true,
@@ -267,7 +252,216 @@ export const signup = async (
       error
     );
 
-    next(error);
+    return next(error);
+  }
+};
+
+// =====================================================
+// CREATE ADMIN ACCOUNT
+// =====================================================
+// IMPORTANT:
+// This endpoint requires ADMIN_SETUP_KEY.
+// Do NOT allow the frontend to simply send role: "admin".
+// =====================================================
+
+export const createAdmin = async (
+  req,
+  res,
+  next
+) => {
+  try {
+    const {
+      username,
+      email,
+      password,
+      setupKey,
+    } = req.body;
+
+    console.log("=================================");
+    console.log("ADMIN ACCOUNT CREATION REQUEST");
+
+    console.log({
+      username,
+      email,
+      passwordProvided: Boolean(password),
+      setupKeyProvided: Boolean(setupKey),
+    });
+
+    console.log("=================================");
+
+    // =================================================
+    // CHECK ADMIN SETUP KEY
+    // =================================================
+
+    if (!process.env.ADMIN_SETUP_KEY) {
+      console.error(
+        "❌ ADMIN_SETUP_KEY IS NOT CONFIGURED"
+      );
+
+      return next(
+        errorHandler(
+          500,
+          "Administrator setup is not configured on the server."
+        )
+      );
+    }
+
+    if (
+      typeof setupKey !== "string" ||
+      setupKey !== process.env.ADMIN_SETUP_KEY
+    ) {
+      console.log(
+        "❌ INVALID ADMIN SETUP KEY"
+      );
+
+      return next(
+        errorHandler(
+          403,
+          "Invalid administrator setup key."
+        )
+      );
+    }
+
+    // =================================================
+    // VALIDATE INPUT
+    // =================================================
+
+    if (
+      typeof username !== "string" ||
+      typeof email !== "string" ||
+      typeof password !== "string"
+    ) {
+      return next(
+        errorHandler(
+          400,
+          "Please provide username, email and password."
+        )
+      );
+    }
+
+    const normalizedUsername =
+      username.trim();
+
+    const normalizedEmail =
+      email.trim().toLowerCase();
+
+    const cleanPassword =
+      password.trim();
+
+    if (
+      !normalizedUsername ||
+      !normalizedEmail ||
+      !cleanPassword
+    ) {
+      return next(
+        errorHandler(
+          400,
+          "Please provide valid username, email and password."
+        )
+      );
+    }
+
+    if (cleanPassword.length < 6) {
+      return next(
+        errorHandler(
+          400,
+          "Password must be at least 6 characters."
+        )
+      );
+    }
+
+    // =================================================
+    // CHECK EXISTING ACCOUNT
+    // =================================================
+
+    const existingUser =
+      await User.findOne({
+        $or: [
+          {
+            username:
+              normalizedUsername,
+          },
+          {
+            email:
+              normalizedEmail,
+          },
+        ],
+      });
+
+    if (existingUser) {
+      if (
+        existingUser.email ===
+        normalizedEmail
+      ) {
+        return next(
+          errorHandler(
+            400,
+            "Email already exists."
+          )
+        );
+      }
+
+      return next(
+        errorHandler(
+          400,
+          "Username already exists."
+        )
+      );
+    }
+
+    // =================================================
+    // HASH PASSWORD
+    // =================================================
+
+    const hashedPassword =
+      await bcrypt.hash(
+        cleanPassword,
+        10
+      );
+
+    // =================================================
+    // CREATE ADMIN
+    // =================================================
+
+    const admin = new User({
+      username:
+        normalizedUsername,
+
+      email:
+        normalizedEmail,
+
+      password:
+        hashedPassword,
+
+      role: "admin",
+    });
+
+    await admin.save();
+
+    console.log(
+      "✅ ADMIN ACCOUNT CREATED:",
+      {
+        id: admin._id.toString(),
+        username: admin.username,
+        email: admin.email,
+        role: admin.role,
+      }
+    );
+
+    console.log("=================================");
+
+    return res.status(201).json({
+      success: true,
+      message:
+        "Administrator account created successfully.",
+    });
+  } catch (error) {
+    console.error(
+      "❌ CREATE ADMIN ERROR:",
+      error
+    );
+
+    return next(error);
   }
 };
 
@@ -286,13 +480,8 @@ export const signin = async (
       password,
     } = req.body;
 
-    console.log(
-      "================================="
-    );
-
-    console.log(
-      "USER SIGNIN REQUEST"
-    );
+    console.log("=================================");
+    console.log("USER SIGNIN REQUEST");
 
     console.log({
       email,
@@ -353,15 +542,6 @@ export const signin = async (
     // =================================================
 
     if (!validUser) {
-      console.log(
-        "❌ NO USER FOUND FOR:",
-        normalizedEmail
-      );
-
-      console.log(
-        "================================="
-      );
-
       return next(
         errorHandler(
           401,
@@ -407,10 +587,6 @@ export const signin = async (
     // =================================================
 
     if (!validUser.password) {
-      console.log(
-        "❌ USER HAS NO PASSWORD"
-      );
-
       return next(
         errorHandler(
           400,
@@ -418,18 +594,6 @@ export const signin = async (
         )
       );
     }
-
-    // =================================================
-    // CHECK PASSWORD HASH FORMAT
-    // =================================================
-
-    console.log(
-      "PASSWORD HASH:",
-      validUser.password.substring(
-        0,
-        10
-      ) + "..."
-    );
 
     // =================================================
     // COMPARE PASSWORD
@@ -451,14 +615,6 @@ export const signin = async (
     // =================================================
 
     if (!validPassword) {
-      console.log(
-        "❌ PASSWORD DOES NOT MATCH"
-      );
-
-      console.log(
-        "================================="
-      );
-
       return next(
         errorHandler(
           401,
@@ -474,19 +630,11 @@ export const signin = async (
     const token =
       createToken(validUser);
 
-    console.log(
-      "✅ JWT CREATED"
-    );
-
-    // =================================================
-    // REMOVE PASSWORD
-    // =================================================
-
     const userData =
       removePassword(validUser);
 
     console.log(
-      "USER LOGIN SUCCESS:",
+      "✅ USER LOGIN SUCCESS:",
       {
         id: validUser._id.toString(),
         email: validUser.email,
@@ -496,13 +644,7 @@ export const signin = async (
       }
     );
 
-    console.log(
-      "================================="
-    );
-
-    // =================================================
-    // SEND COOKIE + USER
-    // =================================================
+    console.log("=================================");
 
     return setAuthCookie(
       res,
@@ -521,7 +663,7 @@ export const signin = async (
       error
     );
 
-    next(error);
+    return next(error);
   }
 };
 
@@ -540,13 +682,8 @@ export const adminSignin = async (
       password,
     } = req.body;
 
-    console.log(
-      "================================="
-    );
-
-    console.log(
-      "ADMIN SIGNIN REQUEST"
-    );
+    console.log("=================================");
+    console.log("ADMIN SIGNIN REQUEST");
 
     // =================================================
     // VALIDATE INPUT
@@ -675,12 +812,15 @@ export const adminSignin = async (
 
     console.log(
       "✅ ADMIN LOGIN SUCCESS:",
-      admin.email
+      {
+        id: admin._id.toString(),
+        email: admin.email,
+        username: admin.username,
+        role: admin.role,
+      }
     );
 
-    console.log(
-      "================================="
-    );
+    console.log("=================================");
 
     return setAuthCookie(
       res,
@@ -699,7 +839,7 @@ export const adminSignin = async (
       error
     );
 
-    next(error);
+    return next(error);
   }
 };
 
@@ -907,7 +1047,7 @@ export const google = async (
       error
     );
 
-    next(error);
+    return next(error);
   }
 };
 
@@ -947,6 +1087,6 @@ export const signOut = async (
       error
     );
 
-    next(error);
+    return next(error);
   }
 };

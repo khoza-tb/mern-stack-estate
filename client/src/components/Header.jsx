@@ -10,6 +10,10 @@ export default function Header() {
     setMenuOpen(false);
   };
 
+  const isAdmin =
+    currentUser?.role &&
+    String(currentUser.role).toLowerCase() === "admin";
+
   return (
     <header className="bg-white shadow-sm sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
@@ -50,19 +54,45 @@ export default function Header() {
               About
             </Link>
 
-            {/* PROFILE */}
+            {/* LOGGED-IN USER / ADMIN */}
             {currentUser ? (
-              <Link to="/profile">
-                <img
-                  src={
-                    currentUser.photo ||
-                    currentUser.avatar ||
-                    "https://cdn-icons-png.flaticon.com/512/149/149071.png"
-                  }
-                  alt="Profile"
-                  className="w-10 h-10 rounded-full object-cover border-2 border-green-600 hover:opacity-80 transition"
-                />
-              </Link>
+              isAdmin ? (
+                /* ADMIN */
+                <Link
+                  to="/admin/dashboard"
+                  className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg transition-colors duration-200"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={2}
+                    stroke="currentColor"
+                    className="w-5 h-5"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M3 13h8V3H3v10zm10 8h8V11h-8v10zM3 21h8v-6H3v6zm10-12h8V3h-8v6z"
+                    />
+                  </svg>
+
+                  Admin Dashboard
+                </Link>
+              ) : (
+                /* NORMAL USER */
+                <Link to="/profile">
+                  <img
+                    src={
+                      currentUser.photo ||
+                      currentUser.avatar ||
+                      "https://cdn-icons-png.flaticon.com/512/149/149071.png"
+                    }
+                    alt="Profile"
+                    className="w-10 h-10 rounded-full object-cover border-2 border-green-600 hover:opacity-80 transition"
+                  />
+                </Link>
+              )
             ) : (
               <Link
                 to="/signin"
@@ -147,27 +177,54 @@ export default function Header() {
                 About
               </Link>
 
-              {/* MOBILE PROFILE */}
+              {/* MOBILE ADMIN / USER */}
               {currentUser ? (
-                <Link
-                  to="/profile"
-                  onClick={closeMenu}
-                  className="flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-green-50 transition"
-                >
-                  <img
-                    src={
-                      currentUser.photo ||
-                      currentUser.avatar ||
-                      "https://cdn-icons-png.flaticon.com/512/149/149071.png"
-                    }
-                    alt="Profile"
-                    className="w-10 h-10 rounded-full object-cover border-2 border-green-600"
-                  />
+                isAdmin ? (
+                  <Link
+                    to="/admin/dashboard"
+                    onClick={closeMenu}
+                    className="flex items-center gap-3 px-3 py-3 rounded-lg bg-slate-800 text-white hover:bg-slate-700 transition"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth={2}
+                      stroke="currentColor"
+                      className="w-5 h-5"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M3 13h8V3H3v10zm10 8h8V11h-8v10zM3 21h8v-6H3v6zm10-12h8V3h-8v6z"
+                      />
+                    </svg>
 
-                  <span className="text-slate-700 font-medium">
-                    Profile
-                  </span>
-                </Link>
+                    <span className="font-medium">
+                      Admin Dashboard
+                    </span>
+                  </Link>
+                ) : (
+                  <Link
+                    to="/profile"
+                    onClick={closeMenu}
+                    className="flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-green-50 transition"
+                  >
+                    <img
+                      src={
+                        currentUser.photo ||
+                        currentUser.avatar ||
+                        "https://cdn-icons-png.flaticon.com/512/149/149071.png"
+                      }
+                      alt="Profile"
+                      className="w-10 h-10 rounded-full object-cover border-2 border-green-600"
+                    />
+
+                    <span className="text-slate-700 font-medium">
+                      Profile
+                    </span>
+                  </Link>
+                )
               ) : (
                 <Link
                   to="/signin"
