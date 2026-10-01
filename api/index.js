@@ -1,3 +1,4 @@
+
 import dotenv from "dotenv";
 import express from "express";
 import mongoose from "mongoose";
@@ -88,7 +89,7 @@ console.log("=================================");
 // MIDDLEWARE
 // =====================================================
 
-// Parse JSON
+// Parse JSON requests
 app.use(express.json());
 
 // Parse cookies
@@ -106,8 +107,8 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests without an origin
-      // such as Postman/server-to-server requests.
+      // Allow requests without an origin,
+      // such as Postman or server-to-server requests.
       if (!origin) {
         return callback(null, true);
       }
@@ -189,6 +190,7 @@ app.get("/", (req, res) => {
 // REACT ROUTER FALLBACK
 // =====================================================
 
+// Express 5 requires a named wildcard parameter.
 // This allows routes such as:
 // /about
 // /listings
@@ -196,7 +198,8 @@ app.get("/", (req, res) => {
 // /admin/dashboard
 // etc. to work after deployment.
 
-app.get("*", (req, res, next) => {
+app.get("/{*splat}", (req, res, next) => {
+  // Never send API requests to React.
   if (req.path.startsWith("/api/")) {
     return next();
   }
