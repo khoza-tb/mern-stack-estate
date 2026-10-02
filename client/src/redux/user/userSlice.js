@@ -22,7 +22,9 @@ const userSlice = createSlice({
     },
 
     signInSuccess: (state, action) => {
-      const user = action.payload?.user || action.payload;
+      const user =
+        action.payload?.user ||
+        action.payload;
 
       state.currentUser = user;
       state.loading = false;
@@ -32,7 +34,9 @@ const userSlice = createSlice({
     signInFailure: (state, action) => {
       state.currentUser = null;
       state.loading = false;
-      state.error = action.payload;
+      state.error =
+        action.payload ||
+        "Sign in failed.";
     },
 
     // =========================
@@ -46,7 +50,8 @@ const userSlice = createSlice({
 
     updateUserSuccess: (state, action) => {
       const updatedUser =
-        action.payload?.user || action.payload;
+        action.payload?.user ||
+        action.payload;
 
       state.currentUser = updatedUser;
       state.loading = false;
@@ -55,7 +60,9 @@ const userSlice = createSlice({
 
     updateUserFailure: (state, action) => {
       state.loading = false;
-      state.error = action.payload;
+      state.error =
+        action.payload ||
+        "Failed to update user.";
     },
 
     // =========================
@@ -75,7 +82,9 @@ const userSlice = createSlice({
 
     deleteUserFailure: (state, action) => {
       state.loading = false;
-      state.error = action.payload;
+      state.error =
+        action.payload ||
+        "Failed to delete user.";
     },
 
     // =========================
@@ -95,7 +104,9 @@ const userSlice = createSlice({
 
     signOutUserFailure: (state, action) => {
       state.loading = false;
-      state.error = action.payload;
+      state.error =
+        action.payload ||
+        "Failed to sign out.";
     },
 
     // =========================

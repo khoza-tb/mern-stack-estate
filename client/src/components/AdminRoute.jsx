@@ -1,4 +1,4 @@
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
 
 export default function AdminRoute({ children }) {
@@ -6,17 +6,30 @@ export default function AdminRoute({ children }) {
     (state) => state.user
   );
 
-  // No logged-in user
+  const location = useLocation();
+
+  // ========================================
+  // NOT LOGGED IN
+  // ========================================
+  // Send the user to the ADMIN sign-in page,
+  // not the normal user sign-in page.
   if (!currentUser) {
     return (
       <Navigate
         to="/admin/signin"
         replace
+        state={{
+          from: location,
+        }}
       />
     );
   }
 
-  // Logged-in user is not an admin
+  // ========================================
+  // LOGGED IN BUT NOT ADMIN
+  // ========================================
+  // Normal users are never allowed into
+  // any /admin/* route.
   if (currentUser.role !== "admin") {
     return (
       <Navigate
@@ -26,5 +39,8 @@ export default function AdminRoute({ children }) {
     );
   }
 
+  // ========================================
+  // ADMIN
+  // ========================================
   return children;
 }

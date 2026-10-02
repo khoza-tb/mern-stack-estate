@@ -1,4 +1,3 @@
-
 import express from "express";
 
 import {
@@ -28,6 +27,10 @@ const router = express.Router();
 // =====================================================
 
 // POST /api/admin/signin
+//
+// This route is intentionally public.
+// The adminSignin controller itself verifies that
+// the account has role: "admin".
 router.post(
   "/signin",
   adminSignin
@@ -37,6 +40,7 @@ router.post(
 // DASHBOARD
 // =====================================================
 
+// GET /api/admin/stats
 router.get(
   "/stats",
   verifyToken,
@@ -44,6 +48,7 @@ router.get(
   getDashboardStats
 );
 
+// GET /api/admin/activity
 router.get(
   "/activity",
   verifyToken,
@@ -55,6 +60,7 @@ router.get(
 // USERS
 // =====================================================
 
+// GET /api/admin/users
 router.get(
   "/users",
   verifyToken,
@@ -62,6 +68,7 @@ router.get(
   getAllUsers
 );
 
+// PATCH /api/admin/users/:userId/role
 router.patch(
   "/users/:userId/role",
   verifyToken,
@@ -69,6 +76,7 @@ router.patch(
   updateUserRole
 );
 
+// DELETE /api/admin/users/:userId
 router.delete(
   "/users/:userId",
   verifyToken,
@@ -80,6 +88,7 @@ router.delete(
 // LISTINGS
 // =====================================================
 
+// GET /api/admin/listings
 router.get(
   "/listings",
   verifyToken,
@@ -87,6 +96,7 @@ router.get(
   getAllListings
 );
 
+// DELETE /api/admin/listings/:listingId
 router.delete(
   "/listings/:listingId",
   verifyToken,
@@ -98,6 +108,7 @@ router.delete(
 // INQUIRIES
 // =====================================================
 
+// GET /api/admin/inquiries
 router.get(
   "/inquiries",
   verifyToken,
@@ -105,6 +116,7 @@ router.get(
   getAllInquiries
 );
 
+// PATCH /api/admin/inquiries/:inquiryId/status
 router.patch(
   "/inquiries/:inquiryId/status",
   verifyToken,
@@ -112,6 +124,7 @@ router.patch(
   updateInquiryStatusAdmin
 );
 
+// DELETE /api/admin/inquiries/:inquiryId
 router.delete(
   "/inquiries/:inquiryId",
   verifyToken,
@@ -120,4 +133,3 @@ router.delete(
 );
 
 export default router;
-

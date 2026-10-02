@@ -7,35 +7,62 @@ dotenv.config({
   path: "./api/.env",
 });
 
-const createAdmin = async () => {
+const makeAdmin = async () => {
   try {
-    await mongoose.connect(
-      process.env.MONGO
-    );
+    // =====================================================
+    // CONNECT TO MONGODB
+    // =====================================================
 
-    console.log(
-      "MongoDB connected"
-    );
+    if (!process.env.MONGO) {
+      throw new Error(
+        "MONGO is not configured in api/.env"
+      );
+    }
 
-    const email =
-      "admin@primeplaceestate.com";
+    await mongoose.connect(process.env.MONGO);
 
-    const password =
-      "Admin@12345";
+    console.log("MongoDB connected");
 
-    const existingAdmin =
-      await User.findOne({
-        email,
-      });
+    // =====================================================
+    // ADMIN ACCOUNT
+    // =====================================================
 
-    if (existingAdmin) {
+    const email = "admin@primeplaceestate.com";
+
+    const password = "Admin@12345";
+
+    // =====================================================
+    // FIND EXISTING USER
+    // =====================================================
+
+    const user = await User.findOne({
+      email: email.toLowerCase(),
+    });
+
+    if (!user) {
       console.log(
-        "Admin account already exists."
+        "================================"
       );
 
       console.log(
-        "Current role:",
-        existingAdmin.role
+        "ADMIN ACCOUNT NOT FOUND"
+      );
+
+      console.log(
+        "Email:",
+        email
+      );
+
+      console.log(
+        "Create a normal user account first,"
+      );
+
+      console.log(
+        "then run this script again."
+      );
+
+      console.log(
+        "================================"
       );
 
       await mongoose.disconnect();
@@ -43,44 +70,85 @@ const createAdmin = async () => {
       return;
     }
 
+    console.log(
+      "================================"
+    );
+
+    console.log(
+      "EXISTING ACCOUNT FOUND"
+    );
+
+    console.log(
+      "Username:",
+      user.username
+    );
+
+    console.log(
+      "Email:",
+      user.email
+    );
+
+    console.log(
+      "Current role:",
+      user.role
+    );
+
+    // =====================================================
+    // HASH NEW ADMIN PASSWORD
+    // =====================================================
+
     const hashedPassword =
-      await bcrypt.hash(
-        password,
-        10
-      );
+      await bcrypt.hash(password, 10);
 
-    const admin = new User({
-      username: "admin",
-      email,
-      password: hashedPassword,
-      avatar:
-        "https://cdn-icons-png.flaticon.com/512/149/149071.png",
-      role: "admin",
-    });
+    // =====================================================
+    // PROMOTE ACCOUNT TO ADMIN
+    // =====================================================
 
-    await admin.save();
+    user.role = "admin";
+    user.password = hashedPassword;
+
+    await user.save();
+
+    // =====================================================
+    // SUCCESS
+    // =====================================================
 
     console.log(
       "================================"
     );
 
     console.log(
-      "ADMIN CREATED SUCCESSFULLY"
+      "ADMIN ACCOUNT UPDATED SUCCESSFULLY"
+    );
+
+    console.log(
+      "================================"
     );
 
     console.log(
       "Email:",
-      email
-    );
-
-    console.log(
-      "Password:",
-      password
+      user.email
     );
 
     console.log(
       "Role:",
-      admin.role
+      user.role
+    );
+
+    console.log(
+      "Password has been reset and securely hashed."
+    );
+
+    console.log(
+      "================================"
+    );
+
+    console.log(
+      "You can now sign in at:"
+    );
+
+    console.log(
+      "http://localhost:5173/admin/signin"
     );
 
     console.log(
@@ -88,14 +156,24 @@ const createAdmin = async () => {
     );
 
     await mongoose.disconnect();
+
+    console.log(
+      "MongoDB disconnected"
+    );
   } catch (error) {
     console.error(
-      "CREATE ADMIN ERROR:",
+      "MAKE ADMIN ERROR:",
       error
     );
+
+    try {
+      await mongoose.disconnect();
+    } catch {
+      // Ignore disconnect errors
+    }
 
     process.exit(1);
   }
 };
 
-createAdmin();
+makeAdmin();

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
@@ -40,9 +39,9 @@ export default function AdminSignIn() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    try {
-      dispatch(signInStart());
+    dispatch(signInStart());
 
+    try {
       const response = await fetch(
         "/api/auth/admin/signin",
         {
@@ -51,16 +50,42 @@ export default function AdminSignIn() {
             "Content-Type": "application/json",
           },
           credentials: "include",
-          body: JSON.stringify(formData),
+          body: JSON.stringify({
+            email: formData.email.trim().toLowerCase(),
+            password: formData.password,
+          }),
         }
       );
 
-      const data = await response.json();
+      const text = await response.text();
+
+      let data = {};
+
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch (parseError) {
+        console.error(
+          "ADMIN SIGNIN JSON ERROR:",
+          parseError
+        );
+
+        dispatch(
+          signInFailure(
+            "Server returned an invalid response."
+          )
+        );
+
+        return;
+      }
 
       console.log("=================================");
       console.log("ADMIN SIGNIN RESPONSE:");
       console.log(data);
       console.log("=================================");
+
+      // ========================================
+      // SERVER ERROR
+      // ========================================
 
       if (!response.ok || data.success === false) {
         dispatch(
@@ -80,20 +105,19 @@ export default function AdminSignIn() {
 
       console.log("ADMIN USER:", userData);
 
-      const userRole = userData.role;
-
-      console.log("ADMIN ROLE:", userRole);
-
       // ========================================
       // VERIFY ADMIN ROLE
       // ========================================
 
-      if (userRole !== "admin") {
+      if (!userData || userData.role !== "admin") {
+        console.error(
+          "ADMIN SIGNIN REJECTED - INVALID ROLE:",
+          userData?.role
+        );
+
         dispatch(
           signInFailure(
-            `This account does not have administrator access. Role received: ${
-              userRole || "undefined"
-            }`
+            "This account does not have administrator access."
           )
         );
 
@@ -107,12 +131,16 @@ export default function AdminSignIn() {
       dispatch(
         signInSuccess({
           ...userData,
-          role: userRole,
+          role: "admin",
         })
       );
 
+      console.log("✅ ADMIN SIGNIN SUCCESSFUL");
+      console.log("✅ ADMIN ROLE VERIFIED");
+      console.log("➡️ Redirecting to admin dashboard...");
+
       // ========================================
-      // REDIRECT TO ADMIN DASHBOARD
+      // REDIRECT
       // ========================================
 
       navigate("/admin/dashboard");
@@ -201,7 +229,8 @@ export default function AdminSignIn() {
                 onChange={handleChange}
                 required
                 autoComplete="email"
-                className="w-full border border-slate-300 rounded-lg p-3 outline-none focus:border-slate-600 focus:ring-2 focus:ring-slate-200"
+                disabled={loading}
+                className="w-full border border-slate-300 rounded-lg p-3 outline-none focus:border-slate-600 focus:ring-2 focus:ring-slate-200 disabled:opacity-60"
               />
 
             </div>
@@ -225,7 +254,8 @@ export default function AdminSignIn() {
                 onChange={handleChange}
                 required
                 autoComplete="current-password"
-                className="w-full border border-slate-300 rounded-lg p-3 outline-none focus:border-slate-600 focus:ring-2 focus:ring-slate-200"
+                disabled={loading}
+                className="w-full border border-slate-300 rounded-lg p-3 outline-none focus:border-slate-600 focus:ring-2 focus:ring-slate-200 disabled:opacity-60"
               />
 
               <div className="flex justify-end mt-2">
@@ -301,4 +331,3 @@ export default function AdminSignIn() {
     </main>
   );
 }
-

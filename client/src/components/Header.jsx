@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
+
 import {
   signOutUserStart,
   signOutUserSuccess,
-  signOutUserFailure,
 } from "../redux/user/userSlice";
 
 export default function Header() {
@@ -15,7 +15,6 @@ export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   const dispatch = useDispatch();
-  const navigate = useNavigate();
 
   const closeMenu = () => {
     setMenuOpen(false);
@@ -30,64 +29,76 @@ export default function Header() {
   // =========================================================
 
   const handleSignOut = async () => {
+    if (loading) return;
+
+    console.log("=================================");
+    console.log("SIGN OUT CLICKED");
+    console.log("CURRENT USER:", currentUser);
+    console.log("USER ROLE:", currentUser?.role);
+    console.log("IS ADMIN:", isAdmin);
+    console.log("=================================");
+
+    dispatch(signOutUserStart());
+
     try {
-      dispatch(signOutUserStart());
+      // -------------------------------------------------------
+      // Tell backend to clear authentication cookie
+      // -------------------------------------------------------
 
       const response = await fetch("/api/auth/signout", {
         method: "GET",
         credentials: "include",
+        cache: "no-store",
       });
 
-      const text = await response.text();
+      console.log(
+        "SIGN OUT SERVER STATUS:",
+        response.status
+      );
 
-      let data = {};
+      const responseText = await response.text();
 
-      if (text && text.trim()) {
-        try {
-          data = JSON.parse(text);
-        } catch (error) {
-          console.warn(
-            "Sign out response was not JSON:",
-            text
-          );
-        }
-      }
+      console.log(
+        "SIGN OUT SERVER RESPONSE:",
+        responseText
+      );
 
       if (!response.ok) {
-        throw new Error(
-          data.message || "Failed to sign out."
+        console.warn(
+          "SERVER SIGN OUT RETURNED:",
+          response.status
         );
       }
-
-      dispatch(signOutUserSuccess());
-
-      closeMenu();
-
-      navigate(
-        isAdmin ? "/admin/signin" : "/signin",
-        { replace: true }
-      );
     } catch (error) {
-      console.error("SIGN OUT ERROR:", error);
-
-      /*
-       * Clear the local Redux session even if the
-       * server-side request fails.
-       */
-      dispatch(
-        signOutUserFailure(
-          error.message || "Failed to sign out."
-        )
+      console.error(
+        "SIGN OUT REQUEST ERROR:",
+        error
       );
+    } finally {
+      // -------------------------------------------------------
+      // ALWAYS CLEAR USER FROM REDUX
+      // -------------------------------------------------------
 
       dispatch(signOutUserSuccess());
 
+      // -------------------------------------------------------
+      // CLOSE MENU
+      // -------------------------------------------------------
+
       closeMenu();
 
-      navigate(
-        isAdmin ? "/admin/signin" : "/signin",
-        { replace: true }
-      );
+      console.log("REDUX SESSION CLEARED");
+      console.log("CURRENT USER SHOULD NOW BE NULL");
+
+      // -------------------------------------------------------
+      // FORCE HOME PAGE
+      //
+      // Using window.location.replace instead of navigate()
+      // prevents React Router from immediately redirecting
+      // the admin back to /admin/signin.
+      // -------------------------------------------------------
+
+      window.location.replace("/");
     }
   };
 
@@ -95,10 +106,16 @@ export default function Header() {
     <header className="bg-white shadow-sm sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
 
-        {/* TOP BAR */}
+        {/* =====================================================
+            TOP BAR
+        ====================================================== */}
+
         <div className="flex items-center justify-between">
 
-          {/* LOGO */}
+          {/* ===================================================
+              LOGO
+          ==================================================== */}
+
           <Link
             to="/"
             onClick={closeMenu}
@@ -107,8 +124,13 @@ export default function Header() {
             PrimePlaceEstate
           </Link>
 
-          {/* DESKTOP NAVIGATION */}
+          {/* ===================================================
+              DESKTOP NAVIGATION
+          ==================================================== */}
+
           <nav className="hidden md:flex items-center gap-5 lg:gap-6">
+
+            {/* HOME */}
 
             <Link
               to="/"
@@ -117,12 +139,16 @@ export default function Header() {
               Home
             </Link>
 
+            {/* EXPLORE */}
+
             <Link
               to="/search"
               className="text-slate-700 hover:text-green-700 transition-colors duration-200"
             >
               Explore
             </Link>
+
+            {/* ABOUT */}
 
             <Link
               to="/about"
@@ -131,11 +157,15 @@ export default function Header() {
               About
             </Link>
 
-            {/* LOGGED-IN USER / ADMIN */}
+            {/* =================================================
+                LOGGED-IN USER / ADMIN
+            ================================================== */}
+
             {currentUser ? (
               isAdmin ? (
                 <>
                   {/* ADMIN DASHBOARD */}
+
                   <Link
                     to="/admin/dashboard"
                     className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg transition-colors duration-200"
@@ -159,6 +189,7 @@ export default function Header() {
                   </Link>
 
                   {/* ADMIN SIGN OUT */}
+
                   <button
                     type="button"
                     onClick={handleSignOut}
@@ -180,12 +211,15 @@ export default function Header() {
                       />
                     </svg>
 
-                    {loading ? "Signing Out..." : "Sign Out"}
+                    {loading
+                      ? "Signing Out..."
+                      : "Sign Out"}
                   </button>
                 </>
               ) : (
                 <>
                   {/* NORMAL USER PROFILE */}
+
                   <Link to="/profile">
                     <img
                       src={
@@ -200,6 +234,8 @@ export default function Header() {
                 </>
               )
             ) : (
+              /* NOT LOGGED IN */
+
               <Link
                 to="/signin"
                 className="bg-green-700 hover:bg-green-800 text-white px-5 py-2 rounded-lg transition-colors duration-200"
@@ -209,16 +245,20 @@ export default function Header() {
             )}
           </nav>
 
-          {/* MOBILE MENU BUTTON */}
+          {/* ===================================================
+              MOBILE MENU BUTTON
+          ==================================================== */}
+
           <button
             type="button"
-            onClick={() => setMenuOpen(!menuOpen)}
+            onClick={() => setMenuOpen((prev) => !prev)}
             className="md:hidden p-2 rounded-lg text-slate-700 hover:bg-slate-100 transition"
             aria-label="Toggle navigation menu"
             aria-expanded={menuOpen}
           >
             {menuOpen ? (
               /* CLOSE ICON */
+
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
@@ -235,6 +275,7 @@ export default function Header() {
               </svg>
             ) : (
               /* HAMBURGER ICON */
+
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
@@ -253,11 +294,15 @@ export default function Header() {
           </button>
         </div>
 
-        {/* MOBILE NAVIGATION */}
+        {/* =====================================================
+            MOBILE NAVIGATION
+        ====================================================== */}
+
         {menuOpen && (
           <nav className="md:hidden mt-4 pt-4 border-t border-slate-100">
-
             <div className="flex flex-col gap-2">
+
+              {/* HOME */}
 
               <Link
                 to="/"
@@ -267,6 +312,8 @@ export default function Header() {
                 Home
               </Link>
 
+              {/* EXPLORE */}
+
               <Link
                 to="/search"
                 onClick={closeMenu}
@@ -274,6 +321,8 @@ export default function Header() {
               >
                 Explore
               </Link>
+
+              {/* ABOUT */}
 
               <Link
                 to="/about"
@@ -283,11 +332,15 @@ export default function Header() {
                 About
               </Link>
 
-              {/* MOBILE ADMIN / USER */}
+              {/* =================================================
+                  MOBILE ADMIN / USER
+              ================================================== */}
+
               {currentUser ? (
                 isAdmin ? (
                   <>
-                    {/* MOBILE ADMIN DASHBOARD */}
+                    {/* ADMIN DASHBOARD */}
+
                     <Link
                       to="/admin/dashboard"
                       onClick={closeMenu}
@@ -313,7 +366,8 @@ export default function Header() {
                       </span>
                     </Link>
 
-                    {/* MOBILE ADMIN SIGN OUT */}
+                    {/* ADMIN SIGN OUT */}
+
                     <button
                       type="button"
                       onClick={handleSignOut}
@@ -343,6 +397,8 @@ export default function Header() {
                     </button>
                   </>
                 ) : (
+                  /* NORMAL USER */
+
                   <Link
                     to="/profile"
                     onClick={closeMenu}
@@ -364,6 +420,8 @@ export default function Header() {
                   </Link>
                 )
               ) : (
+                /* MOBILE SIGN IN */
+
                 <Link
                   to="/signin"
                   onClick={closeMenu}
@@ -372,7 +430,6 @@ export default function Header() {
                   Sign In
                 </Link>
               )}
-
             </div>
           </nav>
         )}

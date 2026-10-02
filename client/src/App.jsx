@@ -18,6 +18,7 @@ import MyListings from "./pages/MyListings";
 import UpdateListing from "./pages/UpdateListing";
 import ShowListing from "./pages/ShowListing";
 import Search from "./pages/Search";
+import ForgotPassword from "./pages/ForgotPassword";
 
 // ========================================
 // ADMIN PAGES
@@ -27,7 +28,6 @@ import AdminDashboard from "./pages/AdminDashboard";
 import AdminListings from "./pages/AdminListings";
 import AdminInquiries from "./pages/AdminInquiries";
 import AdminUsers from "./pages/AdminUsers";
-import ForgotPassword from "./pages/ForgotPassword";
 
 // ========================================
 // COMPONENTS
@@ -40,7 +40,9 @@ export default function App() {
   return (
     <Router>
       {/* ========================================
-          HEADER
+          MAIN HEADER
+          AdminRoute/pages can hide or replace
+          this through their own layout if needed.
       ======================================== */}
       <Header />
 
@@ -72,22 +74,27 @@ export default function App() {
           element={<Search />}
         />
 
-        {/* SIGN IN */}
+        {/* USER SIGN IN */}
         <Route
           path="/signin"
           element={<SignIn />}
         />
 
-        {/* SIGN UP */}
+        {/* USER SIGN UP ONLY
+            No admin signup exists here. */}
         <Route
           path="/signup"
           element={<SignUp />}
         />
 
-        <Route path="/forgot-password" element={<ForgotPassword />} />
+        {/* FORGOT PASSWORD */}
+        <Route
+          path="/forgot-password"
+          element={<ForgotPassword />}
+        />
 
         {/* ========================================
-            VIEW PROPERTY
+            PUBLIC PROPERTY VIEW
         ======================================== */}
 
         <Route
@@ -97,13 +104,14 @@ export default function App() {
 
         {/* ========================================
             USER PROTECTED ROUTES
+            Only role: "user" can access these.
         ======================================== */}
 
         {/* PROFILE */}
         <Route
           path="/profile"
           element={
-            <PrivateRoute>
+            <PrivateRoute allowedRoles={["user"]}>
               <Profile />
             </PrivateRoute>
           }
@@ -113,7 +121,7 @@ export default function App() {
         <Route
           path="/create-listing"
           element={
-            <PrivateRoute>
+            <PrivateRoute allowedRoles={["user"]}>
               <CreateListing />
             </PrivateRoute>
           }
@@ -123,7 +131,7 @@ export default function App() {
         <Route
           path="/my-listings"
           element={
-            <PrivateRoute>
+            <PrivateRoute allowedRoles={["user"]}>
               <MyListings />
             </PrivateRoute>
           }
@@ -133,7 +141,7 @@ export default function App() {
         <Route
           path="/update-listing/:id"
           element={
-            <PrivateRoute>
+            <PrivateRoute allowedRoles={["user"]}>
               <UpdateListing />
             </PrivateRoute>
           }
@@ -141,6 +149,8 @@ export default function App() {
 
         {/* ========================================
             ADMIN SIGN IN
+            This is PUBLIC, but only an existing
+            admin account can successfully sign in.
         ======================================== */}
 
         <Route
@@ -150,6 +160,7 @@ export default function App() {
 
         {/* ========================================
             ADMIN DASHBOARD
+            AdminRoute must verify role === "admin".
         ======================================== */}
 
         <Route
@@ -175,19 +186,17 @@ export default function App() {
         />
 
         {/* ========================================
-            ADMIN Users
+            ADMIN USERS
         ======================================== */}
-       
-       
 
         <Route
-  path="/admin/users"
-  element={
-    <AdminRoute>
-      <AdminUsers />
-    </AdminRoute>
-  }
-/>
+          path="/admin/users"
+          element={
+            <AdminRoute>
+              <AdminUsers />
+            </AdminRoute>
+          }
+        />
 
         {/* ========================================
             ADMIN INQUIRIES

@@ -56,6 +56,11 @@ export default function AdminHeader() {
   // =========================================================
 
   const fetchStats = async () => {
+    // Do not fetch admin data if there is no logged-in admin
+    if (!currentUser || currentUser.role !== "admin") {
+      return;
+    }
+
     try {
       setLoading(true);
       setError("");
@@ -91,6 +96,10 @@ export default function AdminHeader() {
   // =========================================================
 
   useEffect(() => {
+    if (!currentUser || currentUser.role !== "admin") {
+      return;
+    }
+
     fetchStats();
 
     const interval = setInterval(() => {
@@ -98,7 +107,7 @@ export default function AdminHeader() {
     }, 30000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [currentUser]);
 
   // =========================================================
   // EXTRACT NEW INQUIRIES
@@ -123,9 +132,15 @@ export default function AdminHeader() {
   // =========================================================
 
   const handleSignOut = async () => {
-    try {
-      dispatch(signOutUserStart());
+    if (userLoading) {
+      return;
+    }
 
+    console.log("ADMIN SIGN OUT BUTTON CLICKED");
+
+    dispatch(signOutUserStart());
+
+    try {
       const response = await fetch("/api/auth/signout", {
         method: "GET",
         credentials: "include",
@@ -134,35 +149,44 @@ export default function AdminHeader() {
       const data = await parseResponse(response);
 
       if (!response.ok) {
-        throw new Error(
-          data.message || "Failed to sign out."
+        console.warn(
+          "SERVER SIGN OUT RESPONSE:",
+          data.message || response.status
         );
+      } else {
+        console.log("SERVER SIGN OUT SUCCESS");
       }
+    } catch (error) {
+      console.error(
+        "SERVER SIGN OUT REQUEST FAILED:",
+        error
+      );
+    } finally {
+      // =====================================================
+      // ALWAYS CLEAR THE FRONTEND SESSION
+      // =====================================================
 
       dispatch(signOutUserSuccess());
+
+      // =====================================================
+      // CLOSE UI ELEMENTS
+      // =====================================================
 
       setNotificationOpen(false);
+      setStats(null);
+      setError("");
 
-      navigate("/admin/signin", {
+      console.log("ADMIN SESSION CLEARED");
+
+      // =====================================================
+      // ALWAYS GO TO HOME PAGE
+      // =====================================================
+
+      navigate("/", {
         replace: true,
       });
-    } catch (error) {
-      console.error("ADMIN SIGN OUT ERROR:", error);
 
-      dispatch(
-        signOutUserFailure(
-          error.message || "Failed to sign out."
-        )
-      );
-
-      // Even if the server-side cookie request fails,
-      // remove the local Redux session so the admin
-      // is not left inside the dashboard.
-      dispatch(signOutUserSuccess());
-
-      navigate("/admin/signin", {
-        replace: true,
-      });
+      console.log("REDIRECTED TO HOME");
     }
   };
 
@@ -170,7 +194,10 @@ export default function AdminHeader() {
     <header className="sticky top-0 z-40 border-b border-gray-200 bg-white/95 backdrop-blur dark:border-gray-800 dark:bg-gray-900/95">
       <div className="flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
 
-        {/* LEFT */}
+        {/* =================================================
+            LEFT
+        ================================================= */}
+
         <div>
           <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
             Admin Panel
@@ -181,14 +208,20 @@ export default function AdminHeader() {
           </p>
         </div>
 
-        {/* RIGHT */}
+        {/* =================================================
+            RIGHT
+        ================================================= */}
+
         <div className="flex items-center gap-2 sm:gap-3">
 
-          {/* REFRESH */}
+          {/* =================================================
+              REFRESH
+          ================================================= */}
+
           <button
             type="button"
             onClick={handleRefresh}
-            disabled={loading}
+            disabled={loading || userLoading}
             title="Refresh"
             className="rounded-lg p-2 text-gray-600 transition hover:bg-gray-100 hover:text-gray-900 disabled:cursor-not-allowed disabled:opacity-50 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white"
           >
@@ -198,14 +231,19 @@ export default function AdminHeader() {
             />
           </button>
 
-          {/* NOTIFICATION */}
+          {/* =================================================
+              NOTIFICATION
+          ================================================= */}
+
           <div className="relative">
+
             <button
               type="button"
               onClick={() =>
                 setNotificationOpen((prev) => !prev)
               }
-              className="relative rounded-lg p-2 text-gray-600 transition hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white"
+              disabled={userLoading}
+              className="relative rounded-lg p-2 text-gray-600 transition hover:bg-gray-100 hover:text-gray-900 disabled:cursor-not-allowed disabled:opacity-50 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white"
               aria-label="Notifications"
             >
               <Bell size={20} />
@@ -219,10 +257,14 @@ export default function AdminHeader() {
               )}
             </button>
 
-            {/* DROPDOWN */}
+            {/* =================================================
+                NOTIFICATION DROPDOWN
+            ================================================= */}
+
             {notificationOpen && (
               <>
                 {/* BACKDROP */}
+
                 <button
                   type="button"
                   aria-label="Close notifications"
@@ -235,7 +277,9 @@ export default function AdminHeader() {
                 <div className="absolute right-0 top-12 z-50 w-80 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-900">
 
                   {/* HEADER */}
+
                   <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-gray-700">
+
                     <div>
                       <h3 className="font-semibold text-gray-900 dark:text-white">
                         Notifications
@@ -255,12 +299,16 @@ export default function AdminHeader() {
                     >
                       <X size={17} />
                     </button>
+
                   </div>
 
                   {/* ERROR */}
+
                   {error && (
                     <div className="border-b border-red-200 bg-red-50 px-4 py-3 dark:border-red-900/50 dark:bg-red-950/30">
+
                       <div className="flex gap-2">
+
                         <AlertCircle
                           size={17}
                           className="mt-0.5 shrink-0 text-red-500"
@@ -269,11 +317,14 @@ export default function AdminHeader() {
                         <p className="text-xs text-red-600 dark:text-red-400">
                           {error}
                         </p>
+
                       </div>
+
                     </div>
                   )}
 
                   {/* NEW INQUIRIES */}
+
                   <div className="p-3">
 
                     {newInquiries > 0 ? (
@@ -284,30 +335,37 @@ export default function AdminHeader() {
                         }
                         className="flex items-start gap-3 rounded-lg p-3 transition hover:bg-gray-50 dark:hover:bg-gray-800"
                       >
+
                         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400">
                           <MessageSquare size={19} />
                         </div>
 
                         <div className="min-w-0">
+
                           <p className="text-sm font-medium text-gray-900 dark:text-white">
                             New inquiries
                           </p>
 
                           <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                             You have{" "}
+
                             <span className="font-semibold text-green-600 dark:text-green-400">
                               {newInquiries}
                             </span>{" "}
+
                             new{" "}
+
                             {newInquiries === 1
                               ? "property inquiry"
-                              : "property inquiries"}
-                            .
+                              : "property inquiries"}.
                           </p>
+
                         </div>
+
                       </Link>
                     ) : (
                       <div className="px-3 py-6 text-center">
+
                         <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-400 dark:bg-gray-800">
                           <Bell size={18} />
                         </div>
@@ -319,6 +377,7 @@ export default function AdminHeader() {
                         <p className="mt-1 text-xs text-gray-500 dark:text-gray-500">
                           You're all caught up.
                         </p>
+
                       </div>
                     )}
 
@@ -328,7 +387,10 @@ export default function AdminHeader() {
             )}
           </div>
 
-          {/* ADMIN PROFILE */}
+          {/* =================================================
+              ADMIN PROFILE
+          ================================================= */}
+
           <div className="hidden items-center gap-3 border-l border-gray-200 pl-3 sm:flex dark:border-gray-700">
 
             {currentUser?.avatar ? (
@@ -346,6 +408,7 @@ export default function AdminHeader() {
             )}
 
             <div className="hidden lg:block">
+
               <p className="max-w-32 truncate text-sm font-medium text-gray-900 dark:text-white">
                 {currentUser?.username || "Admin"}
               </p>
@@ -353,10 +416,15 @@ export default function AdminHeader() {
               <p className="max-w-40 truncate text-xs text-gray-500 dark:text-gray-400">
                 {currentUser?.email || ""}
               </p>
+
             </div>
+
           </div>
 
-          {/* SIGN OUT */}
+          {/* =================================================
+              SIGN OUT
+          ================================================= */}
+
           <button
             type="button"
             onClick={handleSignOut}
@@ -364,12 +432,17 @@ export default function AdminHeader() {
             title="Sign Out"
             className="flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:text-gray-300 dark:hover:border-red-900 dark:hover:bg-red-950/30 dark:hover:text-red-400"
           >
+
             <LogOut size={17} />
 
             <span className="hidden sm:inline">
-              {userLoading ? "Signing Out..." : "Sign Out"}
+              {userLoading
+                ? "Signing Out..."
+                : "Sign Out"}
             </span>
+
           </button>
+
         </div>
       </div>
     </header>
