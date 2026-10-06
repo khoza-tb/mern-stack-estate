@@ -1,7 +1,10 @@
 🏡 PrimePlaceEstate
 A modern full-stack real estate web application built with the MERN stack, designed to make property discovery, listing management, and user authentication simple and intuitive.
+
 🌐 Live Demo
-🚧 Coming Soon
+https://mern-stack-estate-1-u4na.onrender.com
+
+
 📌 About The Project
 PrimePlaceEstate is a full-stack real estate platform where users can browse properties, create property listings, manage their listings, and securely authenticate using their accounts.
 The project was built to demonstrate practical full-stack development skills, including REST APIs, authentication, database management, image uploads, responsive UI development, and deployment.
